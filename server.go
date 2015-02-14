@@ -4,11 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"regexp"
+	"strconv"
+	"time"
 )
 
+type Response struct {
+	Time     time.Time
+	Articles []Article
+}
+
 var staticRegex = regexp.MustCompile("^/static/(css|js)/[a-zA-Z0-9.-]+$")
+var cachedResponses map[int]Response = make(map[int]Response)
 
 func postsHandler(w http.ResponseWriter, r *http.Request) {
 	page, err := strconv.Atoi(r.URL.Path[len("/posts/"):])
@@ -16,12 +23,21 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	doc, err := GetPage(page)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	var articles []Article
+	cache, present := cachedResponses[page]
+	if !present || time.Now().Sub(cache.Time).Minutes() > 1 {
+		log.Println("Fetching new page")
+		doc, err := GetPage(page)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		articles = ExtractArticles(doc)
+		cachedResponses[page] = Response{time.Now(), articles}
+	} else {
+		log.Println("Using cached response")
+		articles = cache.Articles
 	}
-	articles := ExtractArticles(doc)
 	resp, err := json.Marshal(articles)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -39,7 +55,7 @@ func resourcesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	file := r.URL.Path[len("/static"):]
 	log.Println("Serving " + file)
-	http.ServeFile(w, r, "public/" + file)
+	http.ServeFile(w, r, "public/"+file)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,5 +72,5 @@ func Serve() {
 }
 
 func main() {
-  Serve()
+	Serve()
 }
