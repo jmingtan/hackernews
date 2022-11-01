@@ -18,9 +18,15 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.6
+        fetch-depth: 1
+        path: go/src/github.com/jmingtan/hackernews
 
     - name: Build
       run: go get
+      env:
+        GOPATH: /home/runner/work/jmingtan/hackernews
 
     - name: Test
       run: go test -v ./...
+      env:
+        GOPATH: /home/runner/work/jmingtan/hackernews
