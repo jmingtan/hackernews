@@ -24,9 +24,9 @@ jobs:
     - name: Build
       run: go get
       env:
-        GOPATH: /home/runner/work/hackernews/go
+        GOPATH: /home/runner/work/hackernews/hackernews
 
     - name: Test
       run: go test -v ./...
       env:
-        GOPATH: /home/runner/work/hackernews/go
+        GOPATH: /home/runner/work/hackernews/hackernews
